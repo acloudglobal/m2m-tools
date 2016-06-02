@@ -13,7 +13,7 @@ class Sims(db.Model, CRUD_MixIn):
     icc_id = db.Column(db.String(120), nullable=False)
     acct_name = db.Column(db.String(100), nullable=False)
     upload_time = db.Column(db.TIMESTAMP, server_default=db.func.current_timestamp(), nullable=False)
-    modify_time = db.Column(db.TIMESTAMP, server_default=db.func.current_timestamp(), nullable=False)
+    modify_time = db.Column(db.TIMESTAMP, nullable=True)
     status = db.Column(db.Integer, nullable=True)
     task_id = db.Column(db.String(36), nullable=False)
 
@@ -31,8 +31,10 @@ class SimsSchema(Schema):
     id = fields.String(dump_only=True)
 
     icc_id = fields.String(validate=not_blank)
-    belong_to_account = fields.String(validate=not_blank)
-    batch_code = fields.String(validate=not_blank)
+    upload_time = fields.String(validate=not_blank)
+    modify_time = fields.String(validate=not_blank)
+    acct_name = fields.String(validate=not_blank)
+    task_id = fields.String(validate=not_blank)
     status = fields.String(validate=not_blank)
 
 

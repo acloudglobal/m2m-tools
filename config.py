@@ -8,7 +8,7 @@ __author__ = 'huangwei'
 mysql_db_username = 'root'
 mysql_db_password = '123456'
 mysql_db_name = 'm2m'
-mysql_db_hostname = '192.168.255.39:3306'
+mysql_db_hostname = '192.168.1.150:3306'
 
 DEBUG = True
 PORT = 5000
@@ -23,7 +23,7 @@ SQLALCHEMY_DATABASE_URI = "mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_ADDR}/{DB_NAM
                                                                                         DB_NAME=mysql_db_name)
 
 # Celery
-CELERY_BROKER_URL = 'redis://192.168.255.39:6379/0'
-CELERY_RESULT_BACKEND = 'redis://192.168.255.39:6379/0'
+CELERY_BROKER_URL = 'redis://192.168.1.150:6379/0'
+CELERY_RESULT_BACKEND = 'redis://192.168.1.150:6379/0'
 
 CELERY_ALWAYS_EAGER = True

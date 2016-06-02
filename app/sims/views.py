@@ -17,19 +17,33 @@ api = Api(sims)
 class CreateListSims(Resource):
 
     def get(self):
+        # 获取请求中的参数
         icc_id = request.args.get('icc_id')
         acct_name = request.args.get('acct_name')
-        order = request.args.get('order')
-        per_page = int(request.args.get('per_page', 10))
-        page = int(request.args.get('page', 1))
+        try:
+            per_page = int(request.args.get('per_page', 10))
+            page = int(request.args.get('page', 1))
+        except Exception as err:
+            resp = jsonify({"error": err.message})
+            resp.status_code = 500
+            return resp
+
+        # 创建查询
         sims_query = db.session.query(Sims)
         if icc_id:
-            sims_query = sims_query.filter(Sims.icc_id == icc_id)
+            sims_query = sims_query.filter(Sims.icc_id.like('%' + icc_id + '%'))
         if acct_name:
-            sims_query = sims_query.filter(Sims.acct_name == acct_name)
-        sims_query = sims_query.limit(per_page).offset(page * per_page)
+            sims_query = sims_query.filter(Sims.acct_name.like('%' + acct_name + '%'))
+        count = sims_query.count()
+        sims_query = sims_query.order_by(Sims.upload_time.desc()).limit(per_page).offset((page - 1) * per_page)
         results = schema.dump(sims_query, many=True).data
-        return results
+        # result
+        resp = jsonify({
+            "data": results,
+            'total_count': count
+        })
+        resp.status_code = 200
+        return resp
 
 class GetUpdateDeleteSim(Resource):
 

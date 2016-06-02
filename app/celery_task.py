@@ -11,6 +11,7 @@ from suds import WebFault
 from suds.wsse import Security, UsernameToken
 import logging
 import time
+from datetime import datetime
 
 logging.getLogger('suds.client').setLevel(logging.CRITICAL)
 url = r'https://api.10646.cn/ws/schema/Terminal.wsdl'
@@ -28,8 +29,8 @@ def batch_process(self, task_id, username, password, license_key, operate):
     effective_date = time.strftime('%Y-%m-%d', time.localtime(time.time()))
 
     while check_tasks(task_id):
-        sim_list = db.session.query(Sims).filter(Sims.task_id == task_id)\
-            .filter(Sims.status == 0).order_by(Sims.upload_time).limit(100).all()
+        sim_list = db.session.query(Sims).filter(Sims.task_id == task_id, Sims.status == 0)\
+            .order_by(Sims.upload_time).limit(100).all()
         for sim in sim_list:
             try:
                 result = client.service.EditTerminal(messageId, version, license_key, sim.icc_id,
@@ -48,12 +49,12 @@ def batch_process(self, task_id, username, password, license_key, operate):
                     update_sim(sim.id, 100)
 
 def check_tasks(task_id):
-    return db.session.query(Sims).filter(Sims.task_id == task_id).count() > 0
+    return db.session.query(Sims).filter(Sims.task_id == task_id, Sims.status == 0).count() > 0
 
 def update_sim(id, status):
     db.session.query(Sims).filter(Sims.id == id).update({
         'status': status,
-        'modify_time': time.time()
+        'modify_time': datetime.now()
     })
     db.session.commit()
 

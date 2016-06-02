@@ -8,6 +8,7 @@ from flask_restful import Api, Resource
 from app.tasks.models import Tasks, TasksSchema
 from app.sims.models import Sims
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import or_
 from marshmallow import ValidationError
 from app.base_models import db
 import uuid
@@ -22,9 +23,31 @@ ALLOWED_EXTENSIONS = {'txt', 'csv'}
 class CreateListTasks(Resource):
 
     def get(self):
-        tasks_query = Tasks.query.all()
+        # 获取请求中的参数
+        filter = request.args.get('filter')
+        try:
+            per_page = int(request.args.get('per_page', 10))
+            page = int(request.args.get('page', 1))
+        except Exception as err:
+            resp = jsonify({"error": err.message})
+            resp.status_code = 500
+            return resp
+
+        # 创建查询
+        tasks_query = db.session.query(Tasks)
+        if filter:
+            tasks_query = tasks_query.filter(or_(Tasks.task_code.like('%' + filter + '%'),
+                                                 Tasks.modify_user.like('%' + filter + '%')))
+        count = tasks_query.count()
+        tasks_query = tasks_query.order_by(Tasks.task_code.desc()).limit(per_page).offset((page - 1) * per_page)
         results = schema.dump(tasks_query, many=True).data
-        return results
+        # result
+        resp = jsonify({
+            "data": results,
+            'total_count': count
+        })
+        resp.status_code = 200
+        return resp
 
     def post(self):
         file = request.files['file']
@@ -51,6 +74,9 @@ class CreateListTasks(Resource):
                     resp = jsonify({"error": err.message})
                     resp.status_code = 500
                     return resp
+                resp = jsonify({"msg":"success"})
+                resp.status_code = 200
+                return resp
             else:
                 resp = jsonify({'error:文件类型错误'})
                 resp.status_code = 500
@@ -115,7 +141,7 @@ def batch_insert_sims(file, username, password, license_key, operate):
     i = 0
     data_lines = []
     for line in file:
-        (icc_id, acct_name) = line.split('\t')
+        (icc_id, acct_name) = line.split(',')
         if icc_id and acct_name:
             data_lines.append({
                 'id': str(uuid.uuid1()),
