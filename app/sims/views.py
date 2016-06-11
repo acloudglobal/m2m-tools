@@ -9,6 +9,7 @@ from app.sims.models import Sims, SimsSchema
 from sqlalchemy.exc import SQLAlchemyError
 from marshmallow import ValidationError
 from app.base_models import db
+import time
 
 sims = Blueprint('sims', __name__)
 schema = SimsSchema(strict=True)
@@ -18,9 +19,11 @@ class CreateListSims(Resource):
 
     def get(self):
         # 获取请求中的参数
-        icc_id = request.args.get('icc_id')
-        acct_name = request.args.get('acct_name')
+        start_date_str = request.args.get('start_date')
+        end_date_str = request.args.get('end_date')
         try:
+            start_date = convert_date(start_date_str)
+            end_date = convert_date(start_date_str)
             per_page = int(request.args.get('per_page', 10))
             page = int(request.args.get('page', 1))
         except Exception as err:
@@ -30,10 +33,12 @@ class CreateListSims(Resource):
 
         # 创建查询
         sims_query = db.session.query(Sims)
-        if icc_id:
-            sims_query = sims_query.filter(Sims.icc_id.like('%' + icc_id + '%'))
-        if acct_name:
-            sims_query = sims_query.filter(Sims.acct_name.like('%' + acct_name + '%'))
+        if start_date:
+            sims_query = sims_query.filter(Sims.upload_time > start_date)
+        if end_date:
+            sims_query = sims_query.filter(Sims.upload_time < end_date)
+        # if acct_name:
+        #     sims_query = sims_query.filter(Sims.acct_name.like('%' + acct_name + '%'))
         count = sims_query.count()
         sims_query = sims_query.order_by(Sims.upload_time.desc()).limit(per_page).offset((page - 1) * per_page)
         results = schema.dump(sims_query, many=True).data
@@ -88,6 +93,12 @@ class GetUpdateDeleteSim(Resource):
             resp = jsonify({"error": str(e)})
             resp.status_code = 401
             return resp
+
+def convert_date(date_str):
+    if date_str:
+        return time.strftime('%Y-%m-%d', time.strptime(date_str[:-15], "%a %b %d %Y %H:%M:%S"))
+    return None
+
 
 api.add_resource(CreateListSims, '.json')
 api.add_resource(GetUpdateDeleteSim, '/<int:id>.json')
